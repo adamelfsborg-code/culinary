@@ -10,8 +10,8 @@ import (
 )
 
 //lint:ignore U1000 Ignore unused function temporarily for debugging
-type FoodType struct {
-	tableName struct{}  `pg:"core.food_type,alias:b"`
+type FoodTypeDto struct {
+	tableName struct{}  `pg:"core.food_type,alias:ft"`
 	Id        uuid.UUID `json:"id" db:"id"`
 	Timestamp time.Time `json:"timestamp" db:"timestamp"`
 	User      uuid.UUID `json:"user" db:"user"`
@@ -28,10 +28,10 @@ type FoodTypeFilterDto struct {
 	Skip     uint16    `json:"skip"`
 }
 
-func NewFoodType(user uuid.UUID, name string, category uuid.UUID) (*FoodType, error) {
+func NewFoodType(user uuid.UUID, name string, category uuid.UUID) (*FoodTypeDto, error) {
 	validate := validator.New()
 
-	foodType := &FoodType{
+	foodType := &FoodTypeDto{
 		User:     user,
 		Name:     name,
 		Category: category,
@@ -62,8 +62,8 @@ func NewFoodTypeFilterDto(id uuid.UUID, name string, category uuid.UUID) (*FoodT
 	return filter, nil
 }
 
-func (d *DataConn) ListFoodTypes() ([]FoodType, error) {
-	var foodTypes []FoodType
+func (d *DataConn) ListFoodTypes() ([]FoodTypeDto, error) {
+	var foodTypes []FoodTypeDto
 
 	err := d.DB.Model(&foodTypes).Select()
 	if err != nil {
@@ -73,8 +73,8 @@ func (d *DataConn) ListFoodTypes() ([]FoodType, error) {
 	return foodTypes, nil
 }
 
-func (d *DataConn) GetFoodTypeById(id uuid.UUID) (FoodType, error) {
-	var foodType FoodType
+func (d *DataConn) GetFoodTypeById(id uuid.UUID) (FoodTypeDto, error) {
+	var foodType FoodTypeDto
 
 	err := d.DB.Model(&foodType).Where("id = ?", id).Select()
 
@@ -85,7 +85,7 @@ func (d *DataConn) GetFoodTypeById(id uuid.UUID) (FoodType, error) {
 	return foodType, nil
 }
 
-func (d *DataConn) CreateFoodType(dto FoodType) error {
+func (d *DataConn) CreateFoodType(dto FoodTypeDto) error {
 	_, err := d.DB.Model(&dto).Insert()
 
 	pgErr, ok := err.(pg.Error)
@@ -97,13 +97,13 @@ func (d *DataConn) CreateFoodType(dto FoodType) error {
 }
 
 func (d *DataConn) EditFoodType(id uuid.UUID, name string, category uuid.UUID) error {
-	var foodType FoodType
+	var foodType FoodTypeDto
 	_, err := d.DB.Model(&foodType).Set("name = ?", name).Set("category = ?", category).Where("id = ?", id).Update()
 	return err
 }
 
 func (d *DataConn) DeleteFoodType(id uuid.UUID) error {
-	var foodType FoodType
+	var foodType FoodTypeDto
 	_, err := d.DB.Model(&foodType).Where("id = ?", id).Delete()
 	return err
 }

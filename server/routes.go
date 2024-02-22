@@ -28,6 +28,8 @@ func (a *Server) loadRoutes() {
 	router.Route("/api/v1/categories", a.loadCategoryRoutes)
 	router.Route("/api/v1/brands", a.loadBrandRoutes)
 	router.Route("/api/v1/foodtypes", a.loadFoodTypeRoutes)
+	router.Route("/api/v1/foods", a.loadFoodRoutes)
+
 	a.router = router
 }
 
@@ -66,18 +68,35 @@ func (a *Server) loadBrandRoutes(router chi.Router) {
 }
 
 func (a *Server) loadFoodTypeRoutes(router chi.Router) {
-	brandHandler := &handler.FoodTypeHandler{
+	foodTypeHandler := &handler.FoodTypeHandler{
 		Data: a.data,
 	}
 
 	router.Group(func(r chi.Router) {
 		r.Use(CustomAuthMiddleware())
 
-		r.Get("/list", brandHandler.ListFoodTypes)
-		r.Post("/", brandHandler.CreateFoodType)
+		r.Get("/list", foodTypeHandler.ListFoodTypes)
+		r.Post("/", foodTypeHandler.CreateFoodType)
 
-		r.Get("/{id}", brandHandler.GetFoodTypeById)
-		r.Put("/{id}", brandHandler.EditFoodType)
-		r.Delete("/{id}", brandHandler.DeleteFoodType)
+		r.Get("/{id}", foodTypeHandler.GetFoodTypeById)
+		r.Put("/{id}", foodTypeHandler.EditFoodType)
+		r.Delete("/{id}", foodTypeHandler.DeleteFoodType)
+	})
+}
+
+func (a *Server) loadFoodRoutes(router chi.Router) {
+	foodHandler := &handler.FoodHandler{
+		Data: a.data,
+	}
+
+	router.Group(func(r chi.Router) {
+		r.Use(CustomAuthMiddleware())
+
+		r.Get("/list", foodHandler.ListFoods)
+		r.Post("/", foodHandler.CreateFood)
+
+		r.Get("/{id}", foodHandler.GetFoodById)
+		r.Put("/{id}", foodHandler.EditFood)
+		r.Delete("/{id}", foodHandler.DeleteFood)
 	})
 }
