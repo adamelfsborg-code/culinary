@@ -15,7 +15,7 @@ type CategoryDto struct {
 	Id        uuid.UUID `json:"id" db:"id"`
 	Timestamp time.Time `json:"timestamp" db:"timestamp"`
 	User      uuid.UUID `json:"user" db:"user"`
-	Name      string    `json:"name" db:"name" validate:"max=20,min=3"`
+	Name      string    `json:"name" db:"name" validate:"min=3"`
 }
 
 //lint:ignore U1000 Ignore unused function temporarily for debugging
@@ -58,15 +58,26 @@ func NewCategoryFilterDto(id uuid.UUID, name string) (*CategoryFilterDto, error)
 	return filter, nil
 }
 
-func (d *DataConn) ListCategories() ([]CategoryDto, error) {
+func (d *DataConn) ListCategories(pageIndex, pageSize int) ([]CategoryDto, error) {
 	var categories []CategoryDto
 
-	err := d.DB.Model(&categories).Select()
+	err := d.DB.Model(&categories).Limit(pageSize).Offset(pageIndex * pageSize).Select()
 	if err != nil {
 		return nil, err
 	}
 
 	return categories, nil
+}
+
+func (d *DataConn) CountCategories() (int, error) {
+	var categories []CategoryDto
+
+	count, err := d.DB.Model(&categories).Count()
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (d *DataConn) GetCategoryById(id uuid.UUID) (CategoryDto, error) {

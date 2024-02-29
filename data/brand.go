@@ -15,7 +15,7 @@ type BrandDto struct {
 	Id        uuid.UUID `json:"id" db:"id"`
 	Timestamp time.Time `json:"timestamp" db:"timestamp"`
 	User      uuid.UUID `json:"user" db:"user"`
-	Name      string    `json:"name" db:"name" validate:"max=20,min=3"`
+	Name      string    `json:"name" db:"name" validate:"min=3"`
 }
 
 //lint:ignore U1000 Ignore unused function temporarily for debugging
@@ -58,15 +58,26 @@ func NewBrandFilterDto(id uuid.UUID, name string) (*BrandFilterDto, error) {
 	return filter, nil
 }
 
-func (d *DataConn) ListBrands() ([]BrandDto, error) {
+func (d *DataConn) ListBrands(pageIndex, pageSize int) ([]BrandDto, error) {
 	var brands []BrandDto
 
-	err := d.DB.Model(&brands).Select()
+	err := d.DB.Model(&brands).Limit(pageSize).Offset(pageIndex * pageSize).Select()
 	if err != nil {
 		return nil, err
 	}
 
 	return brands, nil
+}
+
+func (d *DataConn) CountBrands() (int, error) {
+	var brands []BrandDto
+
+	count, err := d.DB.Model(&brands).Count()
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (d *DataConn) GetBrandById(id uuid.UUID) (BrandDto, error) {

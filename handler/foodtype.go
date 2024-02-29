@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/adamelfsborg-code/food/culinary/data"
+	"github.com/adamelfsborg-code/food/culinary/lib"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
@@ -44,14 +45,33 @@ func (u *FoodTypeHandler) GetFoodTypeById(w http.ResponseWriter, r *http.Request
 }
 
 func (u *FoodTypeHandler) ListFoodTypes(w http.ResponseWriter, r *http.Request) {
-	foodTypes, err := u.Data.ListFoodTypes()
+	pageIndex := r.URL.Query().Get("pageIndex")
+	pageSize := r.URL.Query().Get("pageSize")
+
+	pagination, err := lib.NewPagination(pageIndex, pageSize)
+	if err != nil {
+		fmt.Println("Failed to parse pagination: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	foodTypes, err := u.Data.ListFoodTypes(pagination.PageIndex, pagination.PageSize)
 	if err != nil {
 		fmt.Println("Failed to get foodType: ", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	jsonBytes, err := json.Marshal(foodTypes)
+	count, err := u.Data.CountFoodTypes()
+	if err != nil {
+		fmt.Println("Failed to get brand: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response := lib.NewPaginatedResponse(foodTypes, count, *pagination)
+
+	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println("Failed to decode json: ", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)

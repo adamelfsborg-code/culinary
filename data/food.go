@@ -17,15 +17,37 @@ type FoodDto struct {
 	User        uuid.UUID `json:"user" db:"user"`
 	FoodType    uuid.UUID `json:"foodtype" db:"food_type"`
 	Brand       uuid.UUID `json:"brand" db:"brand"`
-	Name        string    `json:"name" db:"name" validate:"max=20,min=3"`
-	KCAL        uint8     `json:"kcal" db:"kcal"`
-	Protein     uint8     `json:"protein" db:"protein"`
-	Carbs       uint8     `json:"carbs" db:"carbs"`
-	Fat         uint8     `json:"fat" db:"fat"`
-	Saturated   uint8     `json:"saturated" db:"saturated"`
-	Unsaturated uint8     `json:"unsaturated" db:"unsaturated"`
-	Fiber       uint8     `json:"fiber" db:"fiber"`
-	Sugars      uint8     `json:"sugars" db:"sugars"`
+	Name        string    `json:"name" db:"name" validate:"min=3"`
+	KCAL        float32   `json:"kcal" db:"kcal"`
+	Protein     float32   `json:"protein" db:"protein"`
+	Carbs       float32   `json:"carbs" db:"carbs"`
+	Fat         float32   `json:"fat" db:"fat"`
+	Saturated   float32   `json:"saturated" db:"saturated"`
+	Unsaturated float32   `json:"unsaturated" db:"unsaturated"`
+	Fiber       float32   `json:"fiber" db:"fiber"`
+	Sugars      float32   `json:"sugars" db:"sugars"`
+}
+
+//lint:ignore U1000 Ignore unused function temporarily for debugging
+type FoodTableDto struct {
+	tableName   struct{}     `pg:"core.food,alias:f"`
+	Id          uuid.UUID    `json:"id" pg:"id"`
+	Timestamp   time.Time    `json:"timestamp" pg:"timestamp"`
+	UserId      uuid.UUID    `json:"-" pg:"user"`
+	FoodTypeId  uuid.UUID    `json:"-" pg:"food_type"`
+	BrandId     uuid.UUID    `json:"-" pg:"brand"`
+	User        *AuthDto     `json:"user" pg:"fk:user,rel:has-one"`
+	FoodType    *FoodTypeDto `json:"foodtype" pg:"fk:food_type,rel:has-one"`
+	Brand       *BrandDto    `json:"brand" pg:"fk:brand,rel:has-one"`
+	Name        string       `json:"name" pg:"name" validate:"min=3"`
+	KCAL        float32      `json:"kcal" pg:"kcal"`
+	Protein     float32      `json:"protein" pg:"protein"`
+	Carbs       float32      `json:"carbs" pg:"carbs"`
+	Fat         float32      `json:"fat" pg:"fat"`
+	Saturated   float32      `json:"saturated" pg:"saturated"`
+	Unsaturated float32      `json:"unsaturated" pg:"unsaturated"`
+	Fiber       float32      `json:"fiber" pg:"fiber"`
+	Sugars      float32      `json:"sugars" pg:"sugars"`
 }
 
 //lint:ignore U1000 Ignore unused function temporarily for debugging
@@ -37,7 +59,7 @@ type FoodFilterDto struct {
 	Skip     uint16    `json:"skip"`
 }
 
-func NewFood(name string, kcal uint8, protein uint8, carbs uint8, fat uint8, saturated uint8, unstaturated uint8, fiber uint8, sugars uint8, user, foodType, brand uuid.UUID) (*FoodDto, error) {
+func NewFood(name string, kcal float32, protein float32, carbs float32, fat float32, saturated float32, unstaturated float32, fiber float32, sugars float32, user, foodType, brand uuid.UUID) (*FoodDto, error) {
 	validate := validator.New()
 
 	food := &FoodDto{
@@ -79,15 +101,37 @@ func NewFoodFilterDto(id uuid.UUID, name string) (*FoodFilterDto, error) {
 	return filter, nil
 }
 
-func (d *DataConn) ListFoods() ([]FoodDto, error) {
-	var foods []FoodDto
+func (d *DataConn) ListFoods(pageIndex, pageSize int) ([]FoodTableDto, error) {
+	var foods []FoodTableDto
 
-	err := d.DB.Model(&foods).Select()
+	err := d.DB.Model(&foods).
+		Relation("User").
+		Relation("FoodType").
+		Relation("Brand").
+		Limit(pageSize).
+		Offset(pageSize * pageIndex).
+		Select()
 	if err != nil {
 		return nil, err
 	}
 
 	return foods, nil
+}
+
+func (d *DataConn) CountFoods() (int, error) {
+	var foods []FoodTableDto
+
+	count, err := d.DB.Model(&foods).
+		Relation("User").
+		Relation("FoodType").
+		Relation("Brand").
+		Count()
+
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (d *DataConn) GetFoodById(id uuid.UUID) (FoodDto, error) {
@@ -113,7 +157,7 @@ func (d *DataConn) CreateFood(dto FoodDto) error {
 	return err
 }
 
-func (d *DataConn) EditFood(name string, kcal uint8, protein uint8, carbs uint8, fat uint8, saturated uint8, unstaturated uint8, fiber uint8, sugars uint8, brand, foodtype, id uuid.UUID) error {
+func (d *DataConn) EditFood(name string, kcal float32, protein float32, carbs float32, fat float32, saturated float32, unstaturated float32, fiber float32, sugars float32, brand, foodtype, id uuid.UUID) error {
 	var food FoodDto
 	_, err := d.DB.Model(&food).
 		Set("name = ?", name).

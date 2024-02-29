@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/adamelfsborg-code/food/culinary/data"
+	"github.com/adamelfsborg-code/food/culinary/lib"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
@@ -44,14 +45,33 @@ func (u *FoodHandler) GetFoodById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (u *FoodHandler) ListFoods(w http.ResponseWriter, r *http.Request) {
-	foodTypes, err := u.Data.ListFoods()
+	pageIndex := r.URL.Query().Get("pageIndex")
+	pageSize := r.URL.Query().Get("pageSize")
+
+	pagination, err := lib.NewPagination(pageIndex, pageSize)
 	if err != nil {
-		fmt.Println("Failed to get foodType: ", err)
+		fmt.Println("Failed to parse pagination: ", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	jsonBytes, err := json.Marshal(foodTypes)
+	foods, err := u.Data.ListFoods(pagination.PageIndex, pagination.PageSize)
+	if err != nil {
+		fmt.Println("Failed to get food: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	count, err := u.Data.CountFoods()
+	if err != nil {
+		fmt.Println("Failed to count food: ", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	response := lib.NewPaginatedResponse(foods, count, *pagination)
+
+	jsonBytes, err := json.Marshal(response)
 	if err != nil {
 		fmt.Println("Failed to decode json: ", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -74,17 +94,17 @@ func (u *FoodHandler) CreateFood(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Name        string `json:"name"`
-		FoodType    string `json:"foodtype"`
-		Brand       string `json:"brand"`
-		KCAL        uint8  `json:"kcal"`
-		Protein     uint8  `json:"protein"`
-		Carbs       uint8  `json:"carbs"`
-		Fat         uint8  `json:"fat"`
-		Saturated   uint8  `json:"saturated"`
-		Unsaturated uint8  `json:"unsaturated"`
-		Fiber       uint8  `json:"fiber"`
-		Sugars      uint8  `json:"sugars"`
+		Name        string  `json:"name"`
+		FoodType    string  `json:"foodtype"`
+		Brand       string  `json:"brand"`
+		KCAL        float32 `json:"kcal"`
+		Protein     float32 `json:"protein"`
+		Carbs       float32 `json:"carbs"`
+		Fat         float32 `json:"fat"`
+		Saturated   float32 `json:"saturated"`
+		Unsaturated float32 `json:"unsaturated"`
+		Fiber       float32 `json:"fiber"`
+		Sugars      float32 `json:"sugars"`
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&body)
@@ -145,17 +165,17 @@ func (u *FoodHandler) EditFood(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		Name        string `json:"name"`
-		FoodType    string `json:"foodtype"`
-		Brand       string `json:"brand"`
-		KCAL        uint8  `json:"kcal"`
-		Protein     uint8  `json:"protein"`
-		Carbs       uint8  `json:"carbs"`
-		Fat         uint8  `json:"fat"`
-		Saturated   uint8  `json:"saturated"`
-		Unsaturated uint8  `json:"unsaturated"`
-		Fiber       uint8  `json:"fiber"`
-		Sugars      uint8  `json:"sugars"`
+		Name        string  `json:"name"`
+		FoodType    string  `json:"foodtype"`
+		Brand       string  `json:"brand"`
+		KCAL        float32 `json:"kcal"`
+		Protein     float32 `json:"protein"`
+		Carbs       float32 `json:"carbs"`
+		Fat         float32 `json:"fat"`
+		Saturated   float32 `json:"saturated"`
+		Unsaturated float32 `json:"unsaturated"`
+		Fiber       float32 `json:"fiber"`
+		Sugars      float32 `json:"sugars"`
 	}
 
 	err = json.NewDecoder(r.Body).Decode(&body)

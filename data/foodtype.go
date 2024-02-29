@@ -16,7 +16,19 @@ type FoodTypeDto struct {
 	Timestamp time.Time `json:"timestamp" db:"timestamp"`
 	User      uuid.UUID `json:"user" db:"user"`
 	Category  uuid.UUID `json:"category" db:"category"`
-	Name      string    `json:"name" db:"name" validate:"max=20,min=3"`
+	Name      string    `json:"name" db:"name" validate:"min=3"`
+}
+
+//lint:ignore U1000 Ignore unused function temporarily for debugging
+type FoodTypeTableDto struct {
+	tableName  struct{}     `pg:"core.food_type,alias:ft"`
+	Id         uuid.UUID    `json:"id" db:"id"`
+	Timestamp  time.Time    `json:"timestamp" db:"timestamp"`
+	UserId     uuid.UUID    `json:"-" pg:"user"`
+	CategoryId uuid.UUID    `json:"-" pg:"category"`
+	User       *AuthDto     `json:"user" pg:"fk:user,rel:has-one"`
+	Category   *CategoryDto `json:"category" pg:"fk:category,rel:has-one"`
+	Name       string       `json:"name" db:"name" validate:"min=3"`
 }
 
 //lint:ignore U1000 Ignore unused function temporarily for debugging
@@ -62,15 +74,31 @@ func NewFoodTypeFilterDto(id uuid.UUID, name string, category uuid.UUID) (*FoodT
 	return filter, nil
 }
 
-func (d *DataConn) ListFoodTypes() ([]FoodTypeDto, error) {
-	var foodTypes []FoodTypeDto
+func (d *DataConn) ListFoodTypes(pageIndex, pageSize int) ([]FoodTypeTableDto, error) {
+	var foodTypes []FoodTypeTableDto
 
-	err := d.DB.Model(&foodTypes).Select()
+	err := d.DB.Model(&foodTypes).
+		Relation("User").
+		Relation("Category").
+		Limit(pageSize).
+		Offset(pageIndex * pageSize).
+		Select()
 	if err != nil {
 		return nil, err
 	}
 
 	return foodTypes, nil
+}
+
+func (d *DataConn) CountFoodTypes() (int, error) {
+	var foodTypes []FoodTypeTableDto
+
+	count, err := d.DB.Model(&foodTypes).Count()
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
 }
 
 func (d *DataConn) GetFoodTypeById(id uuid.UUID) (FoodTypeDto, error) {

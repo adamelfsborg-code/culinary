@@ -12,7 +12,9 @@ import (
 	"github.com/google/uuid"
 )
 
+//lint:ignore U1000 Ignore unused function temporarily for debugging
 type AuthDto struct {
+	tableName struct{}  `pg:"user.app_user,alias:au"`
 	Id        uuid.UUID `json:"id"`
 	Timestamp time.Time `json:"timestamp"`
 	Name      string    `json:"name"`
